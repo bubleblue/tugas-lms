@@ -39,17 +39,50 @@ module.exports = async function handler(req, res) {
   }
 
   async function fetchRawIcs(targetUrl) {
-    const response = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)'
-      }
-    });
-    return response.text();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
+    try {
+      const response = await fetch(targetUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+          'Accept': 'text/calendar,text/plain,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Referer': 'https://lms.telkomuniversity.ac.id/',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'same-site',
+          'Cache-Control': 'no-cache'
+        },
+        redirect: 'follow'
+      });
+      clearTimeout(timeout);
+      const status = response.status;
+      const text = await response.text();
+      return { status, text };
+    } catch (err) {
+      clearTimeout(timeout);
+      throw err;
+    }
   }
 
-  function parseIcsTasks(icsRaw) {
-    if (icsRaw.includes('Invalid authentication') || icsRaw.toLowerCase().includes('<html')) {
-      return { error: 'Invalid authentication atau token kalender kadaluarsa' };
+  function parseIcsTasks(icsRaw, status = 200) {
+    if (!icsRaw || typeof icsRaw !== 'string') {
+      return { error: `Server LMS tidak memberikan respon (HTTP status: ${status})` };
+    }
+
+    if (icsRaw.includes('Invalid authentication')) {
+      return { error: 'LMS Telkom menolak token: Invalid authentication. Silakan periksa atau perbarui token kalender Anda di LMS.' };
+    }
+
+    if (icsRaw.toLowerCase().includes('<html') || icsRaw.toLowerCase().includes('<!doctype html')) {
+      const titleMatch = icsRaw.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const pageTitle = titleMatch ? titleMatch[1].trim() : 'Firewall / Login Challenge';
+      return {
+        error: `Server LMS Telkom memblokir IP Datacenter Cloud Vercel (${pageTitle}, HTTP ${status}). Firewall kampus mendeteksi request dari cloud luar negeri.`,
+        isBlocked: true
+      };
     }
 
     const unfolded = icsRaw.replace(/\r?\n[ \t]/g, '');
@@ -141,8 +174,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const icsRaw = await fetchRawIcs(url);
-    let { tasks, error } = parseIcsTasks(icsRaw);
+    const { status, text: icsRaw } = await fetchRawIcs(url);
+    let { tasks, error } = parseIcsTasks(icsRaw, status);
 
     if (error) {
       return res.status(200).json({ success: false, error });
@@ -165,8 +198,8 @@ module.exports = async function handler(req, res) {
         for (const vUrl of variants) {
           if (vUrl === url) continue;
           try {
-            const vRaw = await fetchRawIcs(vUrl);
-            const vRes = parseIcsTasks(vRaw);
+            const { status: vStatus, text: vRaw } = await fetchRawIcs(vUrl);
+            const vRes = parseIcsTasks(vRaw, vStatus);
             if (vRes.tasks && vRes.tasks.length > 0) {
               tasks = vRes.tasks;
               break;

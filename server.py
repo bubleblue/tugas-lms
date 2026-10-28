@@ -7,8 +7,8 @@ import json
 import os
 import ssl
 
-PORT = 3000
-BASE_DIR = os.path.join(os.path.dirname(__file__), 'public')
+PORT = int(os.environ.get('PORT', 3000))
+BASE_DIR = os.path.dirname(__file__) if os.path.exists(os.path.join(os.path.dirname(__file__), 'index.html')) else os.path.join(os.path.dirname(__file__), 'public')
 LMS_BASE = 'https://lms.telkomuniversity.ac.id'
 
 # SSL context that allows secure fetching to Tel-U LMS
