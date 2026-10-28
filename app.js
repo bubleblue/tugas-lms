@@ -4,8 +4,19 @@
 
 const LMS_URL = 'https://lms.telkomuniversity.ac.id';
 
+function getCleanIcalUrl() {
+  const fromConfig = (window.CONFIG?.ICAL_URL || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim();
+  const fromStorage = (localStorage.getItem('lms_ical_url') || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim();
+  // Selalu utamakan config.js jika ada, sinkronkan ke localStorage
+  const finalUrl = fromConfig || fromStorage || '';
+  if (fromConfig && fromConfig !== fromStorage) {
+    localStorage.setItem('lms_ical_url', fromConfig);
+  }
+  return finalUrl;
+}
+
 let state = {
-  icalUrl: localStorage.getItem('lms_ical_url') || (window.CONFIG?.ICAL_URL || '').trim(),
+  icalUrl: getCleanIcalUrl(),
   token: localStorage.getItem('lms_token') || (window.CONFIG?.MOODLE_TOKEN || '').trim() || null,
   user: JSON.parse(localStorage.getItem('lms_user') || 'null'),
   completedTasks: JSON.parse(localStorage.getItem('lms_completed_ids') || '[]'),
@@ -40,8 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateGreeting();
   updateUserInfo();
 
-  // 1. Cek iCal URL di localStorage atau config.js
-  const activeIcal = state.icalUrl || (window.CONFIG?.ICAL_URL || '').trim();
+  // 1. Cek iCal URL di config.js atau localStorage
+  const activeIcal = getCleanIcalUrl();
   if (activeIcal) {
     state.icalUrl = activeIcal;
     loadTasksViaIcal(activeIcal);
@@ -624,7 +635,7 @@ function closeModal(event) {
 function openSettingsModal() {
   const modal = document.getElementById('settingsModal');
   const input = document.getElementById('settingsIcalUrl');
-  input.value = state.icalUrl || (window.CONFIG?.ICAL_URL || '');
+  input.value = getCleanIcalUrl();
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -636,7 +647,8 @@ function closeSettingsModal(event) {
 }
 
 function saveSettingsFromModal() {
-  const newUrl = document.getElementById('settingsIcalUrl').value.trim();
+  const input = document.getElementById('settingsIcalUrl');
+  const newUrl = (input.value || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim();
   state.icalUrl = newUrl;
   localStorage.setItem('lms_ical_url', newUrl);
   closeSettingsModal();

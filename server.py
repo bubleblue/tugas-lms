@@ -200,7 +200,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         import re
         from datetime import datetime, timezone
 
-        url = payload.get('url', '').strip()
+        url = re.sub(r'[\s\u200B-\u200D\uFEFF]', '', payload.get('url', '')).strip()
         if not url:
             self.send_response(400)
             self.send_header('Content-Type', 'application/json')

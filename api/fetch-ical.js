@@ -31,6 +31,9 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'URL iCal tidak boleh kosong' });
   }
 
+  // Bersihkan spasi, enter, atau karakter invisible zero-width dari copy-paste di HP
+  url = url.replace(/[\s\u200B-\u200D\uFEFF]/g, '').trim();
+
   if (url.startsWith('webcal://')) {
     url = 'https://' + url.slice(9);
   }
