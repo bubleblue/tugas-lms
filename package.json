@@ -1,0 +1,9 @@
+{
+  "name": "lms-tugas-telkom",
+  "version": "1.0.0",
+  "description": "Tugas LMS Telkom University iOS PWA",
+  "private": true,
+  "engines": {
+    "node": ">=18.x"
+  }
+}
