@@ -12,7 +12,21 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let { url } = req.body || {};
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch (e) {}
+  } else if (!body) {
+    try {
+      const buffers = [];
+      for await (const chunk of req) {
+        buffers.push(chunk);
+      }
+      const raw = Buffer.concat(buffers).toString();
+      body = JSON.parse(raw);
+    } catch (e) {}
+  }
+
+  let url = body?.url;
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'URL iCal tidak boleh kosong' });
   }

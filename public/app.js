@@ -164,24 +164,22 @@ async function loadTasksViaIcal(url) {
   updateProgress(40, 'Membaca kalender iCal LMS Telkom...');
 
   try {
-    let res = await fetch('/api/fetch-ical', {
+    const res = await fetch('/api/fetch-ical', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: targetUrl }),
     });
-    let data = await res.json();
 
-    // Jika preset_what=all kosong atau ada issue, coba juga url asli
-    if ((!data.success || !data.tasks || data.tasks.length === 0) && targetUrl !== url) {
-      res = await fetch('/api/fetch-ical', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-      const fallbackData = await res.json();
-      if (fallbackData.success && fallbackData.tasks && fallbackData.tasks.length > 0) {
-        data = fallbackData;
+    const resText = await res.text();
+    let data;
+
+    try {
+      data = JSON.parse(resText);
+    } catch (parseErr) {
+      if (!res.ok) {
+        throw new Error(`Server error (${res.status}): Periksa koneksi ke server.`);
       }
+      throw new Error(`Format respon tidak sesuai. Pastikan server aktif.`);
     }
 
     if (!data.success) {
@@ -195,9 +193,18 @@ async function loadTasksViaIcal(url) {
     updateSummary();
     renderTasks();
   } catch (err) {
+    console.error('Error loadTasksViaIcal:', err);
     finishLoading();
     errorState.style.display = '';
-    document.getElementById('errorMsg').textContent = err.message || 'Gagal memuat iCal.';
+    
+    let userMsg = err.message || 'Gagal memuat iCal.';
+    if (userMsg.includes('Load failed') || userMsg.includes('Failed to fetch')) {
+      userMsg = 'Tidak dapat terhubung ke server. Pastikan HP dan Laptop terhubung ke Wi-Fi yang sama, atau website sudah di-deploy ke Vercel.';
+    } else if (userMsg.includes('pattern')) {
+      userMsg = 'Respon server tidak terbaca. Silakan ketuk Coba Lagi.';
+    }
+    
+    document.getElementById('errorMsg').textContent = userMsg;
   }
 }
 
