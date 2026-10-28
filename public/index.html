@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Tugas LMS" />
+  <link rel="apple-touch-icon" href="/icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <title>Tugas LMS — Telkom University</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=20261027b" />
+</head>
+<body>
+  <!-- ═══════════════ MAIN APP SCREEN ═══════════════ -->
+  <div id="appScreen" class="screen active">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-bg"></div>
+      <div class="header-content">
+        <div class="header-left">
+          <div id="userAvatar" class="avatar-sm"></div>
+          <div>
+            <p class="header-greeting" id="greetingText">Selamat Malam</p>
+            <h2 class="header-name" id="userName">—</h2>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="header-action" onclick="openIcalModal()" title="iCal / Kalender">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/></svg>
+          </button>
+          <button class="header-action" onclick="openSettingsModal()" title="Pengaturan">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+          </button>
+          <button class="header-action" onclick="loadTasks()" title="Muat Ulang Tugas">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M23 4v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards" id="summaryCards">
+      <div class="summary-card urgent">
+        <div class="card-icon">🔥</div>
+        <div class="card-number" id="urgentCount">0</div>
+        <div class="card-label">Mendesak</div>
+        <div class="card-sublabel">&lt; 24 jam</div>
+      </div>
+      <div class="summary-card pending">
+        <div class="card-icon">📋</div>
+        <div class="card-number" id="pendingCount">0</div>
+        <div class="card-label">Belum Dikerjakan</div>
+        <div class="card-sublabel">Total tugas</div>
+      </div>
+      <div class="summary-card upcoming-card">
+        <div class="card-icon">📅</div>
+        <div class="card-number" id="upcomingCount">0</div>
+        <div class="card-label">Minggu Ini</div>
+        <div class="card-sublabel">Deadline</div>
+      </div>
+    </div>
+
+    <!-- Filter Chips -->
+    <div class="filter-bar">
+      <button class="chip active" data-filter="all" onclick="filterTasks('all', this)">Semua</button>
+      <button class="chip" data-filter="overdue" onclick="filterTasks('overdue', this)">💀 Terlambat</button>
+      <button class="chip" data-filter="urgent" onclick="filterTasks('urgent', this)">🔥 Mendesak</button>
+      <button class="chip" data-filter="thisweek" onclick="filterTasks('thisweek', this)">📅 Minggu Ini</button>
+      <button class="chip" data-filter="nodue" onclick="filterTasks('nodue', this)">♾️ Tanpa Deadline</button>
+    </div>
+
+    <!-- Task List -->
+    <div class="task-section">
+      <div class="section-header">
+        <h3>Tugas Belum Dikerjakan</h3>
+        <button class="refresh-btn" onclick="loadPendingTasks()" id="refreshBtn">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M23 4v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Loading Progress -->
+      <div id="loadingProgress" style="display:none">
+        <div class="loading-status">
+          <div class="spinner-sm"></div>
+          <span id="loadingText">Mengambil data...</span>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div id="taskList" class="task-list">
+        <!-- Skeleton loader -->
+        <div class="skeleton-container" id="skeletonLoader" style="display:none">
+          <div class="skeleton-card"><div class="skeleton-line w80"></div><div class="skeleton-line w50"></div><div class="skeleton-line w60"></div></div>
+          <div class="skeleton-card"><div class="skeleton-line w70"></div><div class="skeleton-line w40"></div><div class="skeleton-line w55"></div></div>
+          <div class="skeleton-card"><div class="skeleton-line w85"></div><div class="skeleton-line w45"></div><div class="skeleton-line w65"></div></div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state" style="display:none">
+        <div class="empty-illustration">🎉</div>
+        <h3>Semua Tugas Selesai!</h3>
+        <p>Tidak ada tugas yang belum dikerjakan. Keren!</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="errorState" class="error-state" style="display:none">
+        <div class="error-illustration">😵</div>
+        <h3>Gagal Memuat</h3>
+        <p id="errorMsg">Terjadi kesalahan saat mengambil data.</p>
+        <button class="btn-secondary" onclick="loadPendingTasks()">Coba Lagi</button>
+      </div>
+    </div>
+
+    <div class="bottom-safe"></div>
+  </div>
+
+  <!-- ═══════════════ ICAL MODAL ═══════════════ -->
+  <div id="icalModal" class="modal-overlay" onclick="closeIcalModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h2>📅 iCal / Kalender LMS</h2>
+        <button class="modal-close" onclick="closeIcalModal()">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="rgba(120,120,128,0.16)"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="icalBody">
+        <div class="ical-loading">
+          <div class="spinner"></div>
+          <span>Mengambil iCal URL...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TASK DETAIL MODAL ═══════════════ -->
+  <div id="taskModal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h2 id="modalTitle">Detail Tugas</h2>
+        <button class="modal-close" onclick="closeModal()">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="rgba(120,120,128,0.16)"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row">
+          <span class="detail-label">Mata Kuliah</span>
+          <span class="detail-value" id="modalCourse">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Deadline</span>
+          <span class="detail-value" id="modalDeadline">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Sisa Waktu</span>
+          <span class="detail-value" id="modalTimeLeft">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value" id="modalStatus">—</span>
+        </div>
+        <div class="detail-description" id="modalDescription"></div>
+        <a id="modalLink" href="#" target="_blank" class="btn-primary modal-link-btn">
+          Buka di LMS
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SETTINGS MODAL ═══════════════ -->
+  <div id="settingsModal" class="modal-overlay" onclick="closeSettingsModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h2>⚙️ Pengaturan</h2>
+        <button class="modal-close" onclick="closeSettingsModal()">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="rgba(120,120,128,0.16)"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;">
+          Anda dapat mengubah URL iCal langsung di sini atau di file <code style="color:var(--accent);background:var(--bg-secondary);padding:2px 6px;border-radius:4px;">public/config.js</code>.
+        </p>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:600;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:6px;">Link Kalender iCal LMS</label>
+          <div class="input-group">
+            <input type="text" id="settingsIcalUrl" placeholder="https://lms.telkomuniversity.ac.id/calendar/export_execute.php?..." spellcheck="false" autocapitalize="off" />
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="saveSettingsFromModal()">
+          Simpan & Muat Ulang Tugas
+        </button>
+
+        <button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="resetCompletedTasks()">
+          🔄 Reset Tugas yang Sudah Ditandai Selesai
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js?v=20261027c"></script>
+  <script src="app.js?v=20261027c"></script>
+</body>
+</html>
