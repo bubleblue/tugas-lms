@@ -369,6 +369,13 @@ function updateSummary() {
   animateNumber('urgentCount', urgent + overdue);
   animateNumber('pendingCount', uncompleted.length);
   animateNumber('upcomingCount', thisWeek);
+
+  // Update chip count tab selesai
+  const completedCount = state.completedTasks.length;
+  const completedChip = document.getElementById('completedFilterChip');
+  if (completedChip) {
+    completedChip.textContent = completedCount > 0 ? `✅ Selesai (${completedCount})` : '✅ Selesai';
+  }
 }
 
 function animateNumber(id, target) {
@@ -393,15 +400,34 @@ function renderTasks() {
   const taskList = document.getElementById('taskList');
   const emptyState = document.getElementById('emptyState');
   const errorState = document.getElementById('errorState');
+  const sectionTitle = document.getElementById('sectionTitle');
 
   taskList.querySelectorAll('.task-card').forEach((c) => c.remove());
   emptyState.style.display = 'none';
   errorState.style.display = 'none';
 
+  const isCompletedFilter = state.currentFilter === 'completed';
+  if (sectionTitle) {
+    sectionTitle.textContent = isCompletedFilter ? 'Tugas yang Sudah Selesai' : 'Tugas Belum Dikerjakan';
+  }
+
   const filtered = filterTaskData(state.pendingTasks, state.currentFilter);
 
   if (filtered.length === 0) {
     emptyState.style.display = '';
+    const emptyIllustration = emptyState.querySelector('.empty-illustration');
+    const emptyTitle = emptyState.querySelector('h3');
+    const emptyDesc = emptyState.querySelector('p');
+
+    if (isCompletedFilter) {
+      if (emptyIllustration) emptyIllustration.textContent = '📋';
+      if (emptyTitle) emptyTitle.textContent = 'Belum Ada Tugas Selesai';
+      if (emptyDesc) emptyDesc.textContent = 'Ketuk lingkaran centang pada tugas yang sudah Anda kerjakan untuk memindahkannya ke sini.';
+    } else {
+      if (emptyIllustration) emptyIllustration.textContent = '🎉';
+      if (emptyTitle) emptyTitle.textContent = 'Semua Tugas Selesai!';
+      if (emptyDesc) emptyDesc.textContent = 'Tidak ada tugas yang belum dikerjakan. Keren!';
+    }
     return;
   }
 
@@ -416,7 +442,12 @@ function filterTaskData(tasks, filter) {
   const dayInSec = 86400;
   const weekInSec = dayInSec * 7;
 
-  // Hanya tampilkan yang belum ditandai selesai (kecuali filter 'completed')
+  // Jika membuka tab 'completed', tampilkan tugas yang SUDAH selesai
+  if (filter === 'completed') {
+    return tasks.filter((t) => state.completedTasks.includes(String(t.id)));
+  }
+
+  // Untuk semua filter lainnya, HANYA tampilkan tugas yang BELUM selesai
   const uncompleted = tasks.filter((t) => !state.completedTasks.includes(String(t.id)));
 
   switch (filter) {
@@ -447,29 +478,29 @@ function filterTasks(filter, chipEl) {
 // ── Create Task Card with iOS Checkbox ─────────────────────────
 function createTaskCard(task, index) {
   const card = document.createElement('div');
-  card.className = 'task-card';
-  card.style.animationDelay = `${index * 0.05}s`;
+  const isDone = state.completedTasks.includes(String(task.id));
+  card.className = `task-card ${isDone ? 'done' : ''}`;
+  card.style.animationDelay = `${index * 0.04}s`;
 
   const now = Math.floor(Date.now() / 1000);
   const deadline = getDeadlineInfo(task.duedate, now);
-  const isDone = state.completedTasks.includes(String(task.id));
 
   card.innerHTML = `
     <div class="task-card-top">
-      <div class="task-check-circle" onclick="toggleTaskCompletion('${task.id}', event)" title="Tandai selesai">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:${isDone ? 'block' : 'none'};"/></svg>
+      <div class="task-check-circle ${isDone ? 'checked' : ''}" onclick="toggleTaskCompletion('${task.id}', event)" title="${isDone ? 'Tandai belum selesai' : 'Tandai sudah selesai'}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="task-card-info" onclick="openTaskDetailById('${task.id}')">
         <div class="task-course">${escapeHtml(shortenCourseName(task.courseName))}</div>
-        <div class="task-name">${escapeHtml(task.name)}</div>
+        <div class="task-name ${isDone ? 'line-through' : ''}">${escapeHtml(task.name)}</div>
         <div class="task-meta">
           <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <span>${deadline.text}</span>
+          <span>${isDone ? 'Sudah diselesaikan' : deadline.text}</span>
         </div>
       </div>
-      <div class="deadline-badge ${deadline.class}">${deadline.badge}</div>
+      <div class="deadline-badge ${isDone ? 'safe' : deadline.class}">${isDone ? '✅ Selesai' : deadline.badge}</div>
     </div>
-    ${deadline.progressHtml}
+    ${!isDone ? deadline.progressHtml : ''}
   `;
 
   return card;
@@ -477,13 +508,38 @@ function createTaskCard(task, index) {
 
 // ── Toggle Completion (Tap Lingkaran Checklist) ────────────────
 function toggleTaskCompletion(taskId, event) {
-  event.stopPropagation();
+  if (event) event.stopPropagation();
   taskId = String(taskId);
 
-  if (state.completedTasks.includes(taskId)) {
-    state.completedTasks = state.completedTasks.filter((id) => id !== taskId);
-  } else {
+  const card = event?.currentTarget?.closest('.task-card');
+  const willBeDone = !state.completedTasks.includes(taskId);
+
+  if (navigator.vibrate) {
+    try { navigator.vibrate(willBeDone ? 25 : 12); } catch (e) {}
+  }
+
+  if (willBeDone) {
     state.completedTasks.push(taskId);
+    if (card && state.currentFilter !== 'completed') {
+      card.classList.add('completing');
+      setTimeout(() => {
+        localStorage.setItem('lms_completed_ids', JSON.stringify(state.completedTasks));
+        updateSummary();
+        renderTasks();
+      }, 220);
+      return;
+    }
+  } else {
+    state.completedTasks = state.completedTasks.filter((id) => id !== taskId);
+    if (card && state.currentFilter === 'completed') {
+      card.classList.add('completing');
+      setTimeout(() => {
+        localStorage.setItem('lms_completed_ids', JSON.stringify(state.completedTasks));
+        updateSummary();
+        renderTasks();
+      }, 220);
+      return;
+    }
   }
 
   localStorage.setItem('lms_completed_ids', JSON.stringify(state.completedTasks));
@@ -588,6 +644,9 @@ function openTaskDetail(task) {
   const modal = document.getElementById('taskModal');
   const now = Math.floor(Date.now() / 1000);
   const deadline = getDeadlineInfo(task.duedate, now);
+  const taskIdStr = String(task.id);
+  state.currentModalTaskId = taskIdStr;
+  const isDone = state.completedTasks.includes(taskIdStr);
 
   document.getElementById('modalTitle').textContent = task.name;
   document.getElementById('modalCourse').textContent = task.courseName;
@@ -595,14 +654,15 @@ function openTaskDetail(task) {
     task.duedate ? formatDateLong(task.duedate) : 'Tidak ada deadline';
 
   const timeLeftEl = document.getElementById('modalTimeLeft');
-  timeLeftEl.textContent = deadline.text;
+  timeLeftEl.textContent = isDone ? 'Tugas Selesai' : deadline.text;
   timeLeftEl.className = `detail-value ${
+    isDone ? 'text-green' :
     deadline.class === 'overdue' ? 'text-red' :
     deadline.class === 'urgent' ? 'text-orange' :
     deadline.class === 'soon' ? 'text-yellow' : 'text-green'
   }`;
 
-  document.getElementById('modalStatus').textContent = '❌ Belum selesai';
+  updateModalStatusUi(isDone);
 
   const desc = document.getElementById('modalDescription');
   desc.innerHTML = task.intro ? sanitizeHtml(task.intro) : '';
@@ -623,6 +683,39 @@ function openTaskDetail(task) {
 
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function updateModalStatusUi(isDone) {
+  const statusEl = document.getElementById('modalStatus');
+  const btn = document.getElementById('modalToggleDoneBtn');
+  const btnText = document.getElementById('modalToggleDoneText');
+
+  if (isDone) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--green);font-weight:700;">✅ Sudah Selesai</span>';
+    if (btn) {
+      btn.className = 'btn-toggle-done is-done';
+      if (btnText) btnText.textContent = '↩️ Kembalikan ke Belum Selesai';
+    }
+  } else {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--orange);font-weight:700;">⏳ Belum Selesai</span>';
+    if (btn) {
+      btn.className = 'btn-toggle-done';
+      if (btnText) btnText.textContent = '✅ Tandai Sudah Selesai';
+    }
+  }
+}
+
+function toggleCurrentModalTask() {
+  if (!state.currentModalTaskId) return;
+  const taskId = state.currentModalTaskId;
+  toggleTaskCompletion(taskId);
+  const isDone = state.completedTasks.includes(taskId);
+  updateModalStatusUi(isDone);
+
+  // Animasi tutup modal setelah diberi feedback
+  setTimeout(() => {
+    closeModal();
+  }, 220);
 }
 
 function closeModal(event) {

@@ -71,13 +71,14 @@
       <button class="chip" data-filter="overdue" onclick="filterTasks('overdue', this)">💀 Terlambat</button>
       <button class="chip" data-filter="urgent" onclick="filterTasks('urgent', this)">🔥 Mendesak</button>
       <button class="chip" data-filter="thisweek" onclick="filterTasks('thisweek', this)">📅 Minggu Ini</button>
+      <button class="chip" data-filter="completed" onclick="filterTasks('completed', this)" id="completedFilterChip">✅ Selesai</button>
       <button class="chip" data-filter="nodue" onclick="filterTasks('nodue', this)">♾️ Tanpa Deadline</button>
     </div>
 
     <!-- Task List -->
     <div class="task-section">
       <div class="section-header">
-        <h3>Tugas Belum Dikerjakan</h3>
+        <h3 id="sectionTitle">Tugas Belum Dikerjakan</h3>
         <button class="refresh-btn" onclick="loadPendingTasks()" id="refreshBtn">
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M23 4v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -169,10 +170,15 @@
           <span class="detail-value" id="modalStatus">—</span>
         </div>
         <div class="detail-description" id="modalDescription"></div>
-        <a id="modalLink" href="#" target="_blank" class="btn-primary modal-link-btn">
-          Buka di LMS
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </a>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
+          <button id="modalToggleDoneBtn" class="btn-toggle-done" onclick="toggleCurrentModalTask()">
+            <span id="modalToggleDoneText">✅ Tandai Sudah Selesai</span>
+          </button>
+          <a id="modalLink" href="#" target="_blank" class="btn-primary modal-link-btn" style="margin-top:0;">
+            Buka di LMS
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </a>
+        </div>
       </div>
     </div>
   </div>
