@@ -50,8 +50,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   updateGreeting();
   updateUserInfo();
+  updateConnectionUi();
 
-  // 1. Cek iCal URL di config.js atau localStorage
+  // 1. Cek Token Moodle (Mode Realtime Otomatis)
+  if (state.token) {
+    if (!state.user?.id) {
+      await fetchUserInfo();
+    }
+    loadTasksViaMoodleApi();
+    return;
+  }
+
+  // 2. Cek kredensial SSO di config.js
+  if (window.CONFIG?.SSO_USERNAME && window.CONFIG?.SSO_PASSWORD) {
+    await autoLoginSSO(window.CONFIG.SSO_USERNAME, window.CONFIG.SSO_PASSWORD);
+    return;
+  }
+
+  // 3. Fallback ke iCal URL jika ada
   const activeIcal = getCleanIcalUrl();
   if (activeIcal) {
     state.icalUrl = activeIcal;
@@ -59,21 +75,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 2. Cek token Moodle
-  if (state.token) {
-    loadTasksViaMoodleApi();
-    return;
-  }
-
-  // 3. Cek kredensial SSO di config.js
-  if (window.CONFIG?.SSO_USERNAME && window.CONFIG?.SSO_PASSWORD) {
-    await autoLoginSSO(window.CONFIG.SSO_USERNAME, window.CONFIG.SSO_PASSWORD);
-    return;
-  }
-
-  // 4. Jika belum ada config, tampilkan instruksi ramah
+  // 4. Jika belum ada config sama sekali
   showNoConfigNotice();
 });
+
+function updateConnectionUi() {
+  const badge = document.getElementById('connectionModeBadge');
+  const banner = document.getElementById('realtimeBanner');
+  const connSection = document.getElementById('connectedAccountSection');
+
+  if (state.token) {
+    if (badge) {
+      badge.className = 'connection-mode-badge realtime';
+      badge.innerHTML = '<span>🟢 Realtime LMS</span>';
+    }
+    if (banner) banner.style.display = 'none';
+    if (connSection) connSection.style.display = 'block';
+  } else {
+    if (badge) {
+      badge.className = 'connection-mode-badge';
+      badge.innerHTML = '<span>⚡ Mode Kalender (Aktifkan Realtime)</span>';
+    }
+    if (banner) banner.style.display = 'flex';
+    if (connSection) connSection.style.display = 'none';
+  }
+}
 
 function showNoConfigNotice() {
   const taskList = document.getElementById('taskList');
@@ -85,11 +111,16 @@ function showNoConfigNotice() {
       <div style="font-size:44px;margin-bottom:12px;">⚙️</div>
       <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Belum Ada Konfigurasi</h3>
       <p style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:18px;">
-        Silakan isi link iCal di file <code style="color:var(--accent);background:var(--bg-secondary);padding:2px 6px;border-radius:4px;">public/config.js</code> atau ketuk tombol di bawah untuk memasukkannya langsung dari HP Anda.
+        Hubungkan akun LMS CeLOE Telkom Anda untuk membaca tugas secara <strong>realtime</strong>, atau gunakan link kalender iCal.
       </p>
-      <button class="btn-primary" onclick="openSettingsModal()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;">
-        <span>Buka Pengaturan URL iCal</span>
-      </button>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn-primary" onclick="openLoginModal()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+          <span>⚡ Hubungkan Akun LMS (Realtime)</span>
+        </button>
+        <button class="btn-secondary" onclick="openSettingsModal()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+          <span>Buka Pengaturan URL iCal</span>
+        </button>
+      </div>
     </div>
   `;
 }
@@ -97,7 +128,7 @@ function showNoConfigNotice() {
 // ── Auto Login SSO jika diset di config.js ──────────────────────
 async function autoLoginSSO(username, password) {
   try {
-    updateProgress(30, 'Menghubungkan akun SSO...');
+    updateProgress(30, 'Menghubungkan akun SSO LMS Telkom...');
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -108,12 +139,25 @@ async function autoLoginSSO(username, password) {
       state.token = data.token;
       localStorage.setItem('lms_token', data.token);
       await fetchUserInfo();
+      updateConnectionUi();
       loadTasksViaMoodleApi();
+    } else {
+      const activeIcal = getCleanIcalUrl();
+      if (activeIcal) {
+        state.icalUrl = activeIcal;
+        loadTasksViaIcal(activeIcal);
+      } else {
+        showNoConfigNotice();
+      }
+    }
+  } catch (err) {
+    const activeIcal = getCleanIcalUrl();
+    if (activeIcal) {
+      state.icalUrl = activeIcal;
+      loadTasksViaIcal(activeIcal);
     } else {
       showNoConfigNotice();
     }
-  } catch (err) {
-    showNoConfigNotice();
   }
 }
 
@@ -139,13 +183,17 @@ async function fetchUserInfo() {
 
 // ── Master Load Tasks Router ───────────────────────────────────
 function loadTasks() {
-  const activeIcal = state.icalUrl || (window.CONFIG?.ICAL_URL || '').trim();
-  if (activeIcal) {
-    loadTasksViaIcal(activeIcal);
-  } else if (state.token) {
+  updateConnectionUi();
+  if (state.token) {
     loadTasksViaMoodleApi();
   } else {
-    showNoConfigNotice();
+    const activeIcal = getCleanIcalUrl();
+    if (activeIcal) {
+      state.icalUrl = activeIcal;
+      loadTasksViaIcal(activeIcal);
+    } else {
+      showNoConfigNotice();
+    }
   }
 }
 
@@ -299,7 +347,12 @@ async function loadTasksViaMoodleApi() {
       batch.forEach((a, idx) => {
         const statusData = statuses[idx];
         const submissionStatus = statusData?.lastattempt?.submission?.status || 'nosubmission';
-        if (submissionStatus === 'new' || submissionStatus === 'nosubmission') {
+        const gradingStatus = statusData?.lastattempt?.gradingstatus || '';
+
+        // 🔥 FILTER REALTIME:
+        // Jika tugas SUDAH DIKUMPULKAN ('submitted') atau dinilai ('graded') di LMS Telkom:
+        // Tugas ini OTOMATIS TIDAK DIMASUKKAN ke daftar pending!
+        if (submissionStatus !== 'submitted' && gradingStatus !== 'graded') {
           pending.push({ ...a, submissionStatus });
         }
       });
@@ -320,8 +373,16 @@ async function loadTasksViaMoodleApi() {
     renderTasks();
   } catch (err) {
     finishLoading();
+    console.warn('Moodle API issue:', err);
     if (err.message?.includes('Invalid token') || err.message?.includes('accessexception')) {
       handleLogout();
+      return;
+    }
+    // Fallback otomatis ke iCal jika Moodle API sementara kendala
+    const activeIcal = getCleanIcalUrl();
+    if (activeIcal) {
+      state.icalUrl = activeIcal;
+      loadTasksViaIcal(activeIcal);
       return;
     }
     errorState.style.display = '';
@@ -746,6 +807,122 @@ function saveSettingsFromModal() {
   localStorage.setItem('lms_ical_url', newUrl);
   closeSettingsModal();
   loadTasks();
+}
+
+// ── Login Modal & SSO Logic ────────────────────────────────────
+function openLoginModal() {
+  const modal = document.getElementById('loginModal');
+  const err = document.getElementById('loginError');
+  if (err) err.style.display = 'none';
+  updateConnectionUi();
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLoginModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('loginModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function switchAuthTab(tab) {
+  const ssoTab = document.getElementById('tabSsoBtn');
+  const tokenTab = document.getElementById('tabTokenBtn');
+  const ssoForm = document.getElementById('ssoForm');
+  const tokenForm = document.getElementById('tokenForm');
+
+  if (tab === 'sso') {
+    ssoTab.classList.add('active');
+    tokenTab.classList.remove('active');
+    ssoForm.style.display = 'block';
+    tokenForm.style.display = 'none';
+  } else {
+    tokenTab.classList.add('active');
+    ssoTab.classList.remove('active');
+    tokenForm.style.display = 'block';
+    ssoForm.style.display = 'none';
+  }
+}
+
+async function submitSSOLogin() {
+  const usernameInput = document.getElementById('ssoUsername');
+  const passwordInput = document.getElementById('ssoPassword');
+  const errorEl = document.getElementById('loginError');
+  const submitBtn = document.getElementById('loginSubmitBtn');
+  const submitText = document.getElementById('loginSubmitText');
+
+  const username = (usernameInput.value || '').trim();
+  const password = (passwordInput.value || '').trim();
+
+  if (!username || !password) {
+    errorEl.textContent = 'Username dan password wajib diisi.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  errorEl.style.display = 'none';
+  submitBtn.disabled = true;
+  submitText.textContent = 'Menghubungkan ke LMS...';
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (data.token) {
+      state.token = data.token;
+      localStorage.setItem('lms_token', data.token);
+      await fetchUserInfo();
+      updateConnectionUi();
+      closeLoginModal();
+      loadTasksViaMoodleApi();
+    } else {
+      let msg = data.error || data.message || 'Login gagal. Periksa username dan password SSO Anda.';
+      if (data.errorcode === 'invalidlogin') {
+        msg = 'Username atau password SSO salah. Silakan periksa kembali.';
+      }
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+  } catch (err) {
+    errorEl.textContent = `Gagal terhubung ke server: ${err.message}`;
+    errorEl.style.display = 'block';
+  } finally {
+    submitBtn.disabled = false;
+    submitText.textContent = 'Hubungkan & Sinkron Realtime';
+  }
+}
+
+function saveManualMoodleToken() {
+  const tokenInput = document.getElementById('manualMoodleToken');
+  const tok = (tokenInput.value || '').trim();
+  if (!tok) return;
+
+  state.token = tok;
+  localStorage.setItem('lms_token', tok);
+  fetchUserInfo().then(() => {
+    updateConnectionUi();
+    closeLoginModal();
+    loadTasksViaMoodleApi();
+  }).catch(() => {
+    updateConnectionUi();
+    closeLoginModal();
+    loadTasksViaMoodleApi();
+  });
+}
+
+function disconnectLmsAccount() {
+  if (confirm('Putuskan sambungan realtime? Aplikasi akan kembali ke mode Kalender iCal.')) {
+    state.token = null;
+    localStorage.removeItem('lms_token');
+    updateConnectionUi();
+    closeLoginModal();
+    loadTasks();
+  }
 }
 
 // ── iCal Export Modal ──────────────────────────────────────────

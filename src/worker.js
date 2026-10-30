@@ -17,7 +17,21 @@ export default {
       });
     }
 
-    // 2. API Endpoint: /api/fetch-ical
+    // 2. API Endpoints
+    if (url.pathname === '/api/login') {
+      if (request.method !== 'POST') {
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: CORS_HEADERS });
+      }
+      return handleLogin(request);
+    }
+
+    if (url.pathname === '/api/moodle') {
+      if (request.method !== 'POST') {
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: CORS_HEADERS });
+      }
+      return handleMoodle(request);
+    }
+
     if (url.pathname === '/api/fetch-ical') {
       if (request.method !== 'POST') {
         return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -237,5 +251,83 @@ async function handleFetchIcal(request) {
       status: 500,
       headers: CORS_HEADERS,
     });
+  }
+}
+
+async function handleLogin(request) {
+  let body = {};
+  try { body = await request.json(); } catch (e) {}
+  const { username, password } = body || {};
+  if (!username || !password) {
+    return new Response(JSON.stringify({ error: 'Username dan password wajib diisi' }), {
+      status: 400,
+      headers: CORS_HEADERS,
+    });
+  }
+
+  const query = new URLSearchParams({
+    username: username.trim(),
+    password: password.trim(),
+    service: 'moodle_mobile_app',
+  });
+
+  const targetUrl = `https://lms.telkomuniversity.ac.id/login/token.php?${query.toString()}`;
+
+  try {
+    const response = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X)',
+        'Accept': 'application/json, text/plain, */*',
+      },
+    });
+    const text = await response.text();
+    return new Response(text, { status: 200, headers: CORS_HEADERS });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
+  }
+}
+
+async function handleMoodle(request) {
+  let body = {};
+  try { body = await request.json(); } catch (e) {}
+  const { token, wsfunction, params } = body || {};
+  if (!token || !wsfunction) {
+    return new Response(JSON.stringify({ error: 'Token dan wsfunction diperlukan' }), {
+      status: 400,
+      headers: CORS_HEADERS,
+    });
+  }
+
+  const queryDict = {
+    wstoken: token,
+    wsfunction: wsfunction,
+    moodlewsrestformat: 'json',
+    ...(params || {}),
+  };
+
+  const queryParams = new URLSearchParams();
+  for (const [key, val] of Object.entries(queryDict)) {
+    if (typeof val === 'object' && val !== null) {
+      for (const [subKey, subVal] of Object.entries(val)) {
+        queryParams.append(`${key}[${subKey}]`, subVal);
+      }
+    } else {
+      queryParams.append(key, val);
+    }
+  }
+
+  const targetUrl = `https://lms.telkomuniversity.ac.id/webservice/rest/server.php?${queryParams.toString()}`;
+
+  try {
+    const response = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X)',
+        'Accept': 'application/json, text/plain, */*',
+      },
+    });
+    const text = await response.text();
+    return new Response(text, { status: 200, headers: CORS_HEADERS });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: CORS_HEADERS });
   }
 }

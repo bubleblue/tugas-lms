@@ -27,6 +27,9 @@
           <div>
             <p class="header-greeting" id="greetingText">Selamat Malam</p>
             <h2 class="header-name" id="userName">—</h2>
+            <div id="connectionModeBadge" class="connection-mode-badge" onclick="openLoginModal()">
+              <span>⚡ Mode Kalender</span>
+            </div>
           </div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -82,6 +85,16 @@
         <button class="refresh-btn" onclick="loadPendingTasks()" id="refreshBtn">
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M23 4v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+      </div>
+
+      <!-- Realtime Auto-Sync Banner -->
+      <div id="realtimeBanner" class="realtime-banner" onclick="openLoginModal()" style="display:none;">
+        <div class="realtime-banner-icon">⚡</div>
+        <div class="realtime-banner-content">
+          <div class="realtime-banner-title">Aktifkan Sinkron Realtime LMS</div>
+          <div class="realtime-banner-sub">Hubungkan akun LMS Telkom agar tugas yang sudah dikerjakan otomatis hilang.</div>
+        </div>
+        <div class="realtime-banner-btn">Hubungkan</div>
       </div>
 
       <!-- Loading Progress -->
@@ -209,9 +222,76 @@
           Simpan & Muat Ulang Tugas
         </button>
 
+        <button class="btn-secondary" style="margin-top:10px;width:100%;border-color:var(--accent);color:var(--accent);" onclick="closeSettingsModal(); openLoginModal();">
+          ⚡ Hubungkan Akun LMS (Realtime Sync)
+        </button>
+
         <button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="resetCompletedTasks()">
           🔄 Reset Tugas yang Sudah Ditandai Selesai
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ LOGIN MODAL (REALTIME LMS) ═══════════════ -->
+  <div id="loginModal" class="modal-overlay" onclick="closeLoginModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h2>⚡ Hubungkan LMS Telkom</h2>
+        <button class="modal-close" onclick="closeLoginModal()">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="rgba(120,120,128,0.16)"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabSsoBtn" onclick="switchAuthTab('sso')">Login Akun SSO</button>
+          <button class="auth-tab" id="tabTokenBtn" onclick="switchAuthTab('token')">Pakai Token</button>
+        </div>
+
+        <!-- SSO Login Form -->
+        <div id="ssoForm" class="auth-form-panel">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;">
+            Masuk dengan akun SSO LMS Telkom University. Status tugas yang sudah Anda upload di LMS akan <strong>langsung dibaca secara realtime</strong> dan otomatis tidak muncul lagi.
+          </p>
+          <div style="margin-bottom:12px;">
+            <div class="input-group">
+              <input type="text" id="ssoUsername" placeholder="Username / NIM SSO" spellcheck="false" autocapitalize="off" />
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div class="input-group">
+              <input type="password" id="ssoPassword" placeholder="Password SSO" />
+            </div>
+          </div>
+          <div id="loginError" style="display:none;color:var(--red);font-size:13px;margin-bottom:12px;padding:10px 12px;background:rgba(255,69,58,0.12);border-radius:var(--radius-sm);line-height:1.4;"></div>
+          <button class="btn-primary" id="loginSubmitBtn" onclick="submitSSOLogin()">
+            <span id="loginSubmitText">Hubungkan & Sinkron Realtime</span>
+          </button>
+        </div>
+
+        <!-- Token Form -->
+        <div id="tokenForm" class="auth-form-panel" style="display:none;">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;">
+            Masukkan Moodle Web Service Token Anda (32 karakter hex):
+          </p>
+          <div class="input-group" style="margin-bottom:14px;">
+            <input type="text" id="manualMoodleToken" placeholder="Contoh: 7a8b9c..." spellcheck="false" autocapitalize="off" />
+          </div>
+          <button class="btn-primary" onclick="saveManualMoodleToken()">
+            Simpan Token
+          </button>
+        </div>
+
+        <!-- Connected Status & Disconnect -->
+        <div id="connectedAccountSection" style="display:none;margin-top:18px;padding-top:14px;border-top:1px solid var(--separator);">
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+            Status: <strong style="color:var(--green);">🟢 Terhubung Realtime ke LMS CeLOE</strong>
+          </div>
+          <button class="btn-secondary" style="color:var(--red);border-color:rgba(255,69,58,0.3);width:100%;" onclick="disconnectLmsAccount()">
+            Putuskan Sambungan Realtime
+          </button>
+        </div>
       </div>
     </div>
   </div>
